@@ -86,6 +86,10 @@ function onSubmit(e: Event) {
   e.preventDefault()
   submitForm()
 }
+
+// Suppress unused TS errors for template refs
+void formRef;
+void fileInputRef;
 </script>
 
 <template>

@@ -11,9 +11,11 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",
     "@vueuse/core": "^14.2.1",
+    "@vueuse/integrations": "^14.2.1",
     "ai": "^6.0.149",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "idb-keyval": "^6.2.2",
     "lucide-vue-next": "^1.0.0",
     "nanoid": "^5.1.7",
     "reka-ui": "^2.9.4",

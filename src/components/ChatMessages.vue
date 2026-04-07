@@ -48,7 +48,7 @@ onMounted(() => {
         />
       </div>
       
-      <div v-else class="flex flex-col gap-6 max-w-3xl mx-auto">
+      <div v-else class="flex flex-col gap-6">
         <Message 
           v-for="msg in messages" 
           :key="msg.id"
@@ -60,7 +60,7 @@ onMounted(() => {
               {{ msg.role === 'user' ? 'You' : 'Gemini Nano' }}
             </span>
             <MessageContent 
-              class="px-4 py-3 rounded-2xl text-sm leading-relaxed"
+              class="px-4 py-3 rounded-2xl text-sm leading-relaxed text-left"
               :class="[
                 msg.role === 'user' 
                   ? 'bg-primary text-primary-foreground rounded-tr-none shadow-md' 
