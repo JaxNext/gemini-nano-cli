@@ -2,7 +2,7 @@ import mitt from 'mitt';
 import type { Emitter } from 'mitt';
 import { StorageProvider } from './StorageProvider';
 import { GeminiClient } from './GeminiClient';
-import type { Message, Session, GeminiNanoStatus } from './types';
+import type { Message, Session, GeminiNanoStatus, MessageContentItem } from './types';
 
 export type ChatEngineEvents = {
   'sessions:changed': Session[];
@@ -110,7 +110,7 @@ export class ChatEngine {
       { 
         id: Date.now().toString(), 
         role: 'assistant', 
-        content: 'Hello! This is a new chat. How can I assist you?' 
+        content: [{ type: 'text', value: 'Hello! This is a new chat. How can I assist you?' }]
       }
     ];
     await this.storage.saveMessages(newId, initMessages);
@@ -148,25 +148,56 @@ export class ChatEngine {
     }
   }
 
-  async sendMessage(content: string) {
+  async sendMessage(text: string, files: any[] = []) {
     if (!this.activeSessionId || this.isGenerating) return;
 
     this.isGenerating = true;
     this.emitter.emit('generation:start');
 
+    const promptContent: MessageContentItem[] = [];
+    
+    if (text.trim()) {
+      promptContent.push({ type: 'text', value: text });
+    }
+    
+    if (files?.length) {
+      for (const file of files) {
+        const nativeFile = file.file || file;
+        const typePrefix = nativeFile.type ? nativeFile.type.split('/')[0] : '';
+        
+        if (typePrefix === 'image') {
+          promptContent.push({ type: 'image', value: nativeFile });
+        } else if (typePrefix === 'audio') {
+          promptContent.push({ type: 'audio', value: nativeFile });
+        }
+      }
+    }
+
     // Add user message
-    const userMessage: Message = { id: Date.now().toString(), role: 'user', content };
+    const userMessage: Message = { id: Date.now().toString(), role: 'user', content: promptContent };
     this.messages = [...this.messages, userMessage];
-    this.emitter.emit('messages:changed', this.messages);
 
     // Create assistant message placeholder
-    const assistantMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: '' };
+    const assistantMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: [{ type: 'text', value: '' }] };
     this.messages = [...this.messages, assistantMessage];
+    
     this.emitter.emit('messages:changed', this.messages);
+    
+    // Save immediately so user message is persisted even if AI throws error
+    try {
+      await this.storage.saveMessages(this.activeSessionId, this.messages);
+    } catch (e) {
+      console.error('Failed to save message to IndexedDB:', e);
+    }
 
     try {
       this.abortController = new AbortController();
-      const stream = await this.aiClient.promptStreaming(content);
+      
+      // Pass the same content format to the prompt API
+      const stream = await this.aiClient.promptStreaming([{
+        role: 'user',
+        content: promptContent
+      }]);
       
       if (!stream) {
         throw new Error('Failed to start streaming');
@@ -179,7 +210,7 @@ export class ChatEngine {
         }
         // window.LanguageModel API normally returns accumulated chunks
         fullText += typeof chunk === 'string' ? chunk : (chunk as any).text || chunk; 
-        assistantMessage.content = fullText;
+        assistantMessage.content[0].value = fullText;
         this.emitter.emit('messages:changed', [...this.messages]);
         this.emitter.emit('generation:chunk', { chunk: fullText, fullText });
       }
@@ -201,8 +232,15 @@ export class ChatEngine {
       console.error('Error generating message:', error);
       if (error instanceof Error && error.name !== 'AbortError') {
         this.emitter.emit('error', error);
-        assistantMessage.content += '\n\n**[Error]** Failed to generate response.';
+        assistantMessage.content[0].value += '\n\n**[Error]** Failed to generate response. (Does your browser support Multimodal Gemini Nano?)';
         this.emitter.emit('messages:changed', [...this.messages]);
+        
+        // Save the error state to DB
+        try {
+          if (this.activeSessionId) {
+            await this.storage.saveMessages(this.activeSessionId, this.messages);
+          }
+        } catch (e) {}
       }
     } finally {
       this.isGenerating = false;

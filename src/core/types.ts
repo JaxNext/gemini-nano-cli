@@ -1,7 +1,12 @@
+export interface MessageContentItem {
+  type: 'text' | 'image' | 'audio';
+  value: string | Blob | ArrayBuffer | any;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
-  content: string;
+  content: MessageContentItem[];
 }
 
 export interface Session {

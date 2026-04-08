@@ -1,4 +1,9 @@
-import type { GeminiNanoStatus } from './types';
+import type { GeminiNanoStatus, MessageContentItem } from './types';
+
+interface PromptItem {
+  role: 'user' | 'assistant';
+  content: MessageContentItem[];
+}
 
 export class GeminiClient {
   private aiSession: any = null;
@@ -34,13 +39,27 @@ export class GeminiClient {
     return availability as GeminiNanoStatus;
   }
 
-  async resetSession(initialPrompts?: { role: string, content: string }[]): Promise<void> {
+  async resetSession(initialPrompts?: PromptItem[]): Promise<void> {
     this.aiSession?.destroy?.();
     this.aiSession = null;
     
     try {
+      const options: any = { initialPrompts };
+      
+      options.expectedInputs = [
+        {
+          type: 'text'
+        },
+        {
+          type: 'image'
+        },
+        {
+          type: 'audio'
+        }
+      ]
+
       // @ts-ignore
-      this.aiSession = await window.LanguageModel.create({ initialPrompts });
+      this.aiSession = await window.LanguageModel.create(options);
       
       this.aiSession.addEventListener('contextoverflow', () => {
         console.warn('Gemini Nano context overflowed!');
@@ -63,7 +82,7 @@ export class GeminiClient {
     return null;
   }
 
-  async promptStreaming(text: string): Promise<AsyncGenerator<string> | null> {
+  async promptStreaming(input: PromptItem[]): Promise<AsyncGenerator<string> | null> {
     if (!this.aiSession) {
       await this.resetSession();
     }
@@ -73,6 +92,6 @@ export class GeminiClient {
     }
     
     // @ts-ignore
-    return this.aiSession.promptStreaming(text);
+    return this.aiSession.promptStreaming(input);
   }
 }

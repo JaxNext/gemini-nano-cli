@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useChatEngine } from '@/composables/useChatEngine'
 import ChatHeader from './ChatHeader.vue'
 import ChatMessages from './ChatMessages.vue'
@@ -18,8 +17,6 @@ const {
   sendMessage,
 } = useChatEngine()
 
-const input = ref('')
-
 const handleSelectSession = (id: string) => {
   loadSession(id)
 }
@@ -36,13 +33,11 @@ const handleRenameSession = async (id: string, newTitle: string) => {
   await renameSession(id, newTitle)
 }
 
-const handleSubmit = async () => {
-  if (!input.value.trim() || isGenerating.value || !activeSessionId.value) return
+const handleSubmit = async (message: { text: string, files: any[] }) => {
+  if (isGenerating.value || !activeSessionId.value) return
+  if (!message.text.trim() && message.files.length === 0) return
   
-  const userText = input.value
-  input.value = ''
-  
-  await sendMessage(userText)
+  await sendMessage(message.text, message.files)
 }
 </script>
 
@@ -67,7 +62,7 @@ const handleSubmit = async () => {
       <ChatMessages :messages="messages" :is-loading="isGenerating" />
 
       <!-- Input Area -->
-      <ChatInput v-model="input" :is-loading="isGenerating" @submit="handleSubmit" />
+      <ChatInput :is-loading="isGenerating" @submit="handleSubmit" />
     </div>
   </div>
 </template>
