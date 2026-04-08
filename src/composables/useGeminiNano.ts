@@ -13,7 +13,8 @@ let aiSession: any = null
 export function useGeminiNano() {
   const updateTokensLeft = () => {
     if (aiSession) {
-      tokensLeft.value = aiSession.contextWindow - aiSession.contextUsage
+      const { contextWindow: cWindow, contextUsage } = aiSession
+      tokensLeft.value = cWindow - contextUsage
     } else {
       tokensLeft.value = null
     }
@@ -27,6 +28,7 @@ export function useGeminiNano() {
       // @ts-ignore
       if (!('LanguageModel' in window)) {
         status.value = 'unavailable'
+        // TODO: give user a hint to enable the flag
         return
       }
       
@@ -38,8 +40,8 @@ export function useGeminiNano() {
         // @ts-ignore
         const session = await window.LanguageModel.create()
         contextWindow.value = session.contextWindow
-        if (session.destroy) session.destroy()
-      } else if (availability === 'downloadable' || availability === 'downloading') {
+        session.destroy()
+      } else if (['downloadable', 'downloading'].includes(availability)) {
         // @ts-ignore
         const session = await window.LanguageModel.create({
           monitor(m: any) {
@@ -52,7 +54,7 @@ export function useGeminiNano() {
           }
         })
         contextWindow.value = session.contextWindow
-        if (session.destroy) session.destroy()
+        session.destroy()
       }
     } catch (error) {
       console.error('Failed to check model availability:', error)
@@ -63,10 +65,10 @@ export function useGeminiNano() {
   }
 
   const resetSession = async (initialPrompts?: { role: string, content: string }[]) => {
-    if (aiSession && aiSession.destroy) {
-      aiSession.destroy()
-      aiSession = null
-    }
+    console.log('vvv');
+    
+    aiSession?.destroy?.()
+    aiSession = null
     if (status.value !== 'available') return;
     
     try {
@@ -77,6 +79,7 @@ export function useGeminiNano() {
       
       aiSession.addEventListener('contextoverflow', () => {
         console.warn('Gemini Nano context overflowed!')
+        // TODO: create a new session with compact history
         updateTokensLeft()
       })
     } catch (e) {
@@ -101,7 +104,8 @@ export function useGeminiNano() {
       })()
     } catch (e: any) {
       if (e.name === 'QuotaExceededError') {
-        console.warn('Context window exceeded. Creating a fresh session without history.')
+        console.warn('Context window exceeded. Creating a fresh session with compact history.')
+        // TODO: create a new session with compact history
         await resetSession()
         // @ts-ignore
         const stream = aiSession.promptStreaming(text)

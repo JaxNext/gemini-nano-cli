@@ -1,65 +1,82 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Card } from '@/components/ui/card'
+import { ref, watch } from 'vue'
 import { useIDBKeyval } from '@vueuse/integrations/useIDBKeyval'
+import { get, set, del } from 'idb-keyval'
 import { useGeminiNano } from '@/composables/useGeminiNano'
 import ChatHeader from './ChatHeader.vue'
 import ChatMessages, { type ChatMessage } from './ChatMessages.vue'
 import ChatInput from './ChatInput.vue'
 import ChatSidebar, { type ChatSession } from './ChatSidebar.vue'
+import { cloneDeep } from 'lodash-es'
 
 const { promptStreaming, resetSession } = useGeminiNano()
 
-// Helper to strip Vue proxies for IndexedDB structured clone
-const cloneDeep = <T>(val: T): T => JSON.parse(JSON.stringify(val))
-
 // Persist state in IndexedDB
-const { data: sessions } = useIDBKeyval<ChatSession[]>('gemini-nano-sessions', [])
+const { data: sessions, isFinished: isSessionsLoaded } = useIDBKeyval<ChatSession[]>('gemini-nano-sessions', [])
+const { data: activeSessionId, isFinished: isActiveSessionLoaded } = useIDBKeyval<string>('gemini-nano-active-session', '')
 
-const { data: activeSessionId } = useIDBKeyval<string>('gemini-nano-active-session', '1')
-
-const { data: messages } = useIDBKeyval<Record<string, ChatMessage[]>>('gemini-nano-messages', {})
-
+const currentMessages = ref<ChatMessage[]>([])
 const input = ref('')
 const isLoading = ref(false)
 
-const handleSelectSession = (id: string) => {
-  if (activeSessionId.value !== undefined) {
-    activeSessionId.value = id
-    resetSession()
+watch(activeSessionId, async (newId) => {
+  if (newId) {
+    const loaded = await get(`gemini-nano-messages-${newId}`)
+    currentMessages.value = loaded || []
+  } else {
+    currentMessages.value = []
   }
+}, { immediate: true })
+
+const saveMessages = async (id: string, msgs: ChatMessage[]) => {
+  await set(`gemini-nano-messages-${id}`, cloneDeep(msgs))
 }
 
-const handleNewSession = () => {
+const deleteMessages = async (id: string) => {
+  await del(`gemini-nano-messages-${id}`)
+}
+
+const handleSelectSession = (id: string) => {
+  activeSessionId.value = id
+  resetSession()
+}
+
+const handleNewSession = async () => {
   const newId = Date.now().toString()
   const newSessions = cloneDeep(sessions.value || [])
   newSessions.unshift({ id: newId, title: 'New Chat', updatedAt: Date.now() })
   sessions.value = newSessions
   
-  const newMessages = cloneDeep(messages.value || {})
-  newMessages[newId] = [
+  const initMessages = [
     { 
       id: Date.now().toString(), 
       role: 'assistant', 
       content: 'Hello! This is a new chat. How can I assist you?' 
     }
   ]
-  messages.value = newMessages
+  await saveMessages(newId, initMessages)
   
-  if (activeSessionId.value !== undefined) {
-    activeSessionId.value = newId
-    resetSession()
-  }
+  activeSessionId.value = newId
+  resetSession()
 }
 
-const handleDeleteSession = (id: string) => {
+watch([isSessionsLoaded, isActiveSessionLoaded], async ([sLoaded, aLoaded]) => {
+  if (sLoaded && aLoaded) {
+    if (!sessions.value || sessions.value.length === 0) {
+      await handleNewSession()
+    } else if (!activeSessionId.value && sessions.value.length > 0) {
+      activeSessionId.value = sessions.value[0].id
+      resetSession()
+    }
+  }
+}, { immediate: true })
+
+const handleDeleteSession = async (id: string) => {
   if (sessions.value) {
     sessions.value = cloneDeep(sessions.value).filter((s: ChatSession) => s.id !== id)
   }
   
-  const newMessages = cloneDeep(messages.value || {})
-  delete newMessages[id]
-  messages.value = newMessages
+  await deleteMessages(id)
   
   if (activeSessionId.value === id) {
     activeSessionId.value = (sessions.value && sessions.value.length > 0) ? sessions.value[0].id : ''
@@ -78,31 +95,25 @@ const handleRenameSession = (id: string, newTitle: string) => {
 }
 
 const handleSubmit = async () => {
-  if (!input.value.trim() || isLoading.value || !activeSessionId.value || !messages.value) return
+  if (!input.value.trim() || isLoading.value || !activeSessionId.value) return
   
   const currentSessionId = activeSessionId.value
   const userText = input.value
   
-  // Use a local authoritative copy to avoid race conditions with IndexedDB async writes
-  let localMessages = cloneDeep(messages.value)
-  if (!localMessages[currentSessionId]) {
-    localMessages[currentSessionId] = []
-  }
-  
-  localMessages[currentSessionId].push({
+  currentMessages.value.push({
     id: Date.now().toString(),
     role: 'user',
     content: userText
   })
   
   const assistantMessageId = Date.now().toString() + '-ai'
-  localMessages[currentSessionId].push({
+  currentMessages.value.push({
     id: assistantMessageId,
     role: 'assistant',
     content: ''
   })
   
-  messages.value = cloneDeep(localMessages)
+  saveMessages(currentSessionId, currentMessages.value)
   
   input.value = ''
   isLoading.value = true
@@ -116,19 +127,19 @@ const handleSubmit = async () => {
     let fullResponse = ''
     for await (const chunk of stream) {
       fullResponse += chunk // The chunk is just the newest piece of text, so we append
-      const targetMessage = localMessages[currentSessionId].find((m: ChatMessage) => m.id === assistantMessageId)
+      const targetMessage = currentMessages.value.find((m: ChatMessage) => m.id === assistantMessageId)
       if (targetMessage) {
         targetMessage.content = fullResponse
       }
-      messages.value = cloneDeep(localMessages)
+      saveMessages(currentSessionId, currentMessages.value)
     }
   } catch (error) {
     console.error('Failed to generate response:', error)
-    const targetMessage = localMessages[currentSessionId].find((m: ChatMessage) => m.id === assistantMessageId)
+    const targetMessage = currentMessages.value.find((m: ChatMessage) => m.id === assistantMessageId)
     if (targetMessage) {
       targetMessage.content += '\n\n**Error:** Sorry, an error occurred while generating the response.'
     }
-    messages.value = cloneDeep(localMessages)
+    saveMessages(currentSessionId, currentMessages.value)
   } finally {
     isLoading.value = false
   }
@@ -136,29 +147,27 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-[80vh] p-4 md:p-8">
-    <Card class="w-full max-w-5xl h-[700px] flex shadow-2xl border-primary/10 overflow-hidden bg-gradient-to-b from-background to-muted/20">
-      <!-- Sidebar -->
-      <ChatSidebar 
-        :sessions="sessions" 
-        :active-session-id="activeSessionId"
-        @select="handleSelectSession"
-        @new="handleNewSession"
-        @delete="handleDeleteSession"
-        @rename="handleRenameSession"
-      />
-      
-      <!-- Main Chat Area -->
-      <div class="flex flex-col flex-1 min-w-0 bg-background/30">
-        <!-- Chat Header -->
-        <ChatHeader />
+  <div class="flex h-full w-full bg-gradient-to-b from-background/50 to-muted/20">
+    <!-- Sidebar -->
+    <ChatSidebar 
+      :sessions="sessions" 
+      :active-session-id="activeSessionId"
+      @select="handleSelectSession"
+      @new="handleNewSession"
+      @delete="handleDeleteSession"
+      @rename="handleRenameSession"
+    />
+    
+    <!-- Main Chat Area -->
+    <div class="flex flex-col flex-1 min-w-0 bg-background/30">
+      <!-- Chat Header -->
+      <ChatHeader />
 
-        <!-- Messages Area -->
-        <ChatMessages :messages="messages[activeSessionId] || []" :is-loading="isLoading" />
+      <!-- Messages Area -->
+      <ChatMessages :messages="currentMessages" :is-loading="isLoading" />
 
-        <!-- Input Area -->
-        <ChatInput v-model="input" :is-loading="isLoading" @submit="handleSubmit" />
-      </div>
-    </Card>
+      <!-- Input Area -->
+      <ChatInput v-model="input" :is-loading="isLoading" @submit="handleSubmit" />
+    </div>
   </div>
 </template>

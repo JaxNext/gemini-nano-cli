@@ -3,10 +3,8 @@ import ChatBot from './components/ChatBot.vue'
 </script>
 
 <template>
-  <main class="min-h-screen bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-from),_transparent_40%),_radial-gradient(circle_at_bottom_left,_var(--tw-gradient-to),_transparent_40%)] from-primary/5 via-background to-primary/5">
-    <div class="px-4 py-8">
-      <ChatBot />
-    </div>
+  <main class="h-screen w-screen overflow-hidden bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-from),_transparent_40%),_radial-gradient(circle_at_bottom_left,_var(--tw-gradient-to),_transparent_40%)] from-primary/5 via-background to-primary/5">
+    <ChatBot />
   </main>
 </template>
 
@@ -19,5 +17,6 @@ import ChatBot from './components/ChatBot.vue'
 body {
   overflow-x: hidden;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  margin: 0;
 }
 </style>

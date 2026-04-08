@@ -2,7 +2,7 @@
 import { Badge } from '@/components/ui/badge'
 import { useGeminiNano } from '@/composables/useGeminiNano'
 
-const { status: modelStatus, contextWindow, downloadProgress } = useGeminiNano()
+const { status: modelStatus, downloadProgress, tokensLeft } = useGeminiNano()
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -42,7 +42,7 @@ const getStatusText = (status: string, progress?: number) => {
         </div>
         <p class="text-xs text-muted-foreground font-medium flex items-center gap-1">
            AI-native assistant &bull; {{ getStatusText(modelStatus, downloadProgress) }}
-           <span v-if="contextWindow" class="opacity-70">&bull; {{ contextWindow }} tokens context</span>
+           <span v-if="tokensLeft" class="opacity-70">&bull; {{ tokensLeft }} tokens left</span>
         </p>
       </div>
     </div>
