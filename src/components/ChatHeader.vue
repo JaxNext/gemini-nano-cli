@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Badge } from '@/components/ui/badge'
-import { useGeminiNano } from '@/composables/useGeminiNano'
+import { useChatEngine } from '@/composables/useChatEngine'
 
-const { status: modelStatus, downloadProgress, tokensLeft } = useGeminiNano()
+const { status: modelStatus, downloadProgress, tokensLeft } = useChatEngine()
 
 const getStatusColor = (status: string) => {
   switch (status) {

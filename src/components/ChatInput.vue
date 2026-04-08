@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { PromptInput, PromptInputTextarea, PromptInputSubmit, PromptInputHeader } from '@/components/ai-elements/prompt-input'
-import { useGeminiNano } from '@/composables/useGeminiNano'
+import { useChatEngine } from '@/composables/useChatEngine'
 
 defineProps<{
   isLoading: boolean
@@ -11,7 +11,7 @@ const emit = defineEmits<{
 }>()
 
 const model = defineModel<string>()
-const { status } = useGeminiNano()
+const { status } = useChatEngine()
 
 const handleSubmit = () => {
   if (status.value === 'available') {

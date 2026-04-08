@@ -2,12 +2,7 @@
 import { ref, watch, nextTick, onMounted } from 'vue'
 import { Conversation, ConversationContent, ConversationEmptyState } from '@/components/ai-elements/conversation'
 import { Message, MessageContent } from '@/components/ai-elements/message'
-
-export interface ChatMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-}
+import type { Message as ChatMessage } from '@/core/types'
 
 const props = defineProps<{
   messages: ChatMessage[]
@@ -50,7 +45,7 @@ onMounted(() => {
       
       <div v-else class="flex flex-col gap-6">
         <Message 
-          v-for="msg in messages" 
+          v-for="msg in messages.filter(m => m.content.trim() !== '')" 
           :key="msg.id"
           :from="msg.role"
           class="animate-in fade-in slide-in-from-bottom-2 duration-300"
@@ -72,7 +67,7 @@ onMounted(() => {
           </div>
         </Message>
         
-        <div v-if="isLoading" class="flex items-start gap-3">
+        <div v-if="isLoading && (!messages.length || messages[messages.length - 1].role === 'user' || messages[messages.length - 1].content.trim() === '')" class="flex items-start gap-3">
           <div class="bg-card border shadow-sm rounded-2xl rounded-tl-none px-4 py-3 flex items-center gap-2">
             <span class="flex gap-1">
               <span class="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></span>

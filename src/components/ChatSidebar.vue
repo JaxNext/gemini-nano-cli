@@ -2,12 +2,7 @@
 import { ref, nextTick } from 'vue'
 import { Button } from '@/components/ui/button'
 import { MessageSquare, Plus, Trash2, Edit2, Check, X } from 'lucide-vue-next'
-
-export interface ChatSession {
-  id: string
-  title: string
-  updatedAt: number
-}
+import type { Session as ChatSession } from '@/core/types'
 
 const props = defineProps<{
   sessions: ChatSession[]
