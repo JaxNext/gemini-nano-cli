@@ -148,6 +148,20 @@ export class ChatEngine {
     }
   }
 
+  async deleteMessage(messageId: string) {
+    if (!this.activeSessionId) return;
+    this.messages = this.messages.filter(m => m.id !== messageId);
+    this.emitter.emit('messages:changed', this.messages);
+    await this.storage.saveMessages(this.activeSessionId, this.messages);
+  }
+
+  async deleteMessages(messageIds: string[]) {
+    if (!this.activeSessionId || messageIds.length === 0) return;
+    this.messages = this.messages.filter(m => !messageIds.includes(m.id));
+    this.emitter.emit('messages:changed', this.messages);
+    await this.storage.saveMessages(this.activeSessionId, this.messages);
+  }
+
   async sendMessage(text: string, files: any[] = []) {
     if (!this.activeSessionId || this.isGenerating) return;
 

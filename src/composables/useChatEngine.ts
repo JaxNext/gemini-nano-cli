@@ -90,6 +90,8 @@ export function useChatEngine() {
     createNewSession: () => engineInstance.createNewSession(),
     deleteSession: (id: string) => engineInstance.deleteSession(id),
     renameSession: (id: string, title: string) => engineInstance.renameSession(id, title),
+    deleteMessage: (id: string) => engineInstance.deleteMessage(id),
+    deleteMessages: (ids: string[]) => engineInstance.deleteMessages(ids),
     sendMessage: (text: string, files?: any[]) => engineInstance.sendMessage(text, files),
     abortGeneration: () => engineInstance.abortGeneration()
   };
