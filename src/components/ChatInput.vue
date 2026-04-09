@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PromptInput, PromptInputTextarea, PromptInputSubmit, PromptInputHeader, PromptInputFooter, PromptInputTools, PromptInputActionMenu, PromptInputActionMenuTrigger, PromptInputActionMenuContent, PromptInputActionAddAttachments } from '@/components/ai-elements/prompt-input'
+import { PromptInput, PromptInputTextarea, PromptInputSubmit, PromptInputHeader, PromptInputFooter, PromptInputTools, PromptInputActionMenu, PromptInputActionMenuTrigger, PromptInputActionMenuContent, PromptInputActionAddAttachments, PromptInputRecordButton } from '@/components/ai-elements/prompt-input'
 import ChatInputAttachments from './ChatInputAttachments.vue'
 import { useChatEngine } from '@/composables/useChatEngine'
 
@@ -46,6 +46,7 @@ const handlePromptSubmit = (message: { text: string, files: any[] }) => {
               <PromptInputActionAddAttachments />
             </PromptInputActionMenuContent>
           </PromptInputActionMenu>
+          <PromptInputRecordButton class="ml-2" />
         </PromptInputTools>
 
         <PromptInputSubmit 

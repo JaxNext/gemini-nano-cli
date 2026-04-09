@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Attachments, Attachment, AttachmentPreview, AttachmentRemove } from '@/components/ai-elements/attachments'
+import { Attachments, Attachment, AttachmentPreview, AttachmentInfo, AttachmentRemove } from '@/components/ai-elements/attachments'
 import { usePromptInput } from '@/components/ai-elements/prompt-input'
 
 const { files, removeFile } = usePromptInput()
@@ -14,6 +14,7 @@ const { files, removeFile } = usePromptInput()
       @remove="removeFile(attachment.id)"
     >
       <AttachmentPreview />
+      <AttachmentInfo />
       <AttachmentRemove />
     </Attachment>
   </Attachments>

@@ -32,10 +32,16 @@ export function usePromptInputProvider(props: {
   const matchesAccept = (file: File) => {
     if (!props.accept || props.accept.trim() === '')
       return true
-    if (props.accept.includes('image/*'))
-      return file.type.startsWith('image/')
-    // Add more mime-type checks here if necessary
-    return true
+    
+    const acceptedTypes = props.accept.split(',').map(t => t.trim())
+    
+    return acceptedTypes.some(type => {
+      if (type.endsWith('/*')) {
+        const prefix = type.replace('/*', '/')
+        return file.type.startsWith(prefix)
+      }
+      return file.type === type
+    })
   }
 
   const addFiles = (incoming: File[] | FileList) => {
