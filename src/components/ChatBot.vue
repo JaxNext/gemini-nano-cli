@@ -54,7 +54,7 @@ const handleSubmit = async (message: { text: string, files: any[] }) => {
     />
     
     <!-- Main Chat Area -->
-    <div class="flex flex-col flex-1 min-w-0 bg-background/30">
+    <div class="flex flex-col flex-1 min-w-0 min-h-0 bg-background/30 overflow-hidden">
       <!-- Chat Header -->
       <ChatHeader />
 

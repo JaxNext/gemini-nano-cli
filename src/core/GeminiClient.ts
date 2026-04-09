@@ -1,12 +1,71 @@
 import type { GeminiNanoStatus, MessageContentItem } from './types';
 
 interface PromptItem {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: MessageContentItem[];
 }
 
 export class GeminiClient {
   private aiSession: any = null;
+  private initialPrompts: PromptItem[] = [
+    {
+      role: 'system',
+      content: [
+        {
+          type: 'text',
+          value: 'You are a helpful assistant. You can use tools to help the user.'
+        }
+      ]
+        
+    }
+  ];
+  private expectedInputs: any[] = [
+    {
+      type: 'text'
+    },
+    {
+      type: 'image'
+    },
+    {
+      type: 'audio'
+    },
+    // {
+    //   type: 'tool-response'
+    // }
+  ];
+  private expectedOutputs: any[] = [
+    {
+      type: 'text'
+    },
+    // {
+    //   type: 'tool-call'
+    // }
+  ];
+  private tools: any[] = [
+    {
+      name: 'getJaxInfo',
+      description: 'Get information about Jax',
+      inputSchema: {
+        // type: 'object',
+        // properties: {
+        //   location: {
+        //     type: 'string',
+        //     description: 'The city to check for the weather condition.'
+        //   }
+        // },
+        // required: ['location']
+      },
+      execute: () => {
+        return JSON.stringify({
+          name: 'Jax',
+          birthDate: '1990-01-01',
+          gender: 'male',
+          job: 'engineer',
+          hobbies: ['reading', 'coding', 'gaming']
+        })
+      }
+    }
+  ];
 
   async checkAvailability(onProgress?: (progress: number) => void): Promise<GeminiNanoStatus> {
     // @ts-ignore
@@ -39,27 +98,19 @@ export class GeminiClient {
     return availability as GeminiNanoStatus;
   }
 
-  async resetSession(initialPrompts?: PromptItem[]): Promise<void> {
+  // TODO: support compact history load in session
+  async resetSession(): Promise<void> {
     this.aiSession?.destroy?.();
     this.aiSession = null;
     
     try {
-      const options: any = { initialPrompts };
-      
-      options.expectedInputs = [
-        {
-          type: 'text'
-        },
-        {
-          type: 'image'
-        },
-        {
-          type: 'audio'
-        }
-      ]
-
       // @ts-ignore
-      this.aiSession = await window.LanguageModel.create(options);
+      this.aiSession = await window.LanguageModel.create({
+        initialPrompts: this.initialPrompts,
+        expectedInputs: this.expectedInputs,
+        expectedOutputs: this.expectedOutputs,
+        tools: this.tools
+      });
       
       this.aiSession.addEventListener('contextoverflow', () => {
         console.warn('Gemini Nano context overflowed!');

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted } from 'vue'
 import { Conversation, ConversationContent, ConversationEmptyState } from '@/components/ai-elements/conversation'
 import { Message, MessageContent, MessageResponse, MessageAction, MessageActions } from '@/components/ai-elements/message'
 import type { Message as ChatMessage, MessageContentItem } from '@/core/types'
@@ -12,34 +11,12 @@ const props = defineProps<{
   isLoading: boolean
 }>()
 
-const scrollContainer = ref<InstanceType<typeof Conversation> | null>(null)
-
 const { deleteMessage } = useChatEngine()
 const { isSelectionMode, selectedMessageIds, toggleMessageSelection } = useMessageSelection()
 
 const handleDeleteMessage = (id: string) => {
   deleteMessage(id)
 }
-
-const scrollToBottom = async () => {
-  await nextTick()
-  if (scrollContainer.value?.$el) {
-    const el = scrollContainer.value.$el
-    el.scrollTop = el.scrollHeight
-  }
-}
-
-watch(() => props.messages, () => {
-  scrollToBottom()
-}, { deep: true })
-
-watch(() => props.isLoading, () => {
-  scrollToBottom()
-})
-
-onMounted(() => {
-  scrollToBottom()
-})
 
 const isMessageEmpty = (content: MessageContentItem[]) => {
   return content.length === 0 || (content.length === 1 && content[0].type === 'text' && (content[0].value as string).trim() === '')
@@ -64,8 +41,8 @@ const getObjectUrl = (file: any) => {
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col relative min-h-0 overflow-hidden">
-    <Conversation ref="scrollContainer" class="flex-1 overflow-y-auto custom-scrollbar bg-transparent">
+  <div class="flex-1 flex flex-col relative min-h-0 h-0 w-full overflow-hidden">
+    <Conversation class="flex-1 custom-scrollbar bg-transparent h-full w-full">
       <ConversationContent class="p-6">
         <div v-if="messages.length === 0">
           <ConversationEmptyState 
@@ -183,17 +160,17 @@ const getObjectUrl = (file: any) => {
 </template>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
+.custom-scrollbar :deep(::-webkit-scrollbar) {
   width: 5px;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
+.custom-scrollbar :deep(::-webkit-scrollbar-track) {
   background: transparent;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
+.custom-scrollbar :deep(::-webkit-scrollbar-thumb) {
   background: hsl(var(--muted-foreground) / 0.1);
   border-radius: 20px;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+.custom-scrollbar :deep(::-webkit-scrollbar-thumb:hover) {
   background: hsl(var(--muted-foreground) / 0.2);
 }
 </style>

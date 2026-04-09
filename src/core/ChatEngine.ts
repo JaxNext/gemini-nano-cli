@@ -87,14 +87,7 @@ export class ChatEngine {
     this.messages = await this.storage.getMessages(id);
     this.emitter.emit('messages:changed', this.messages);
 
-    // Initialize the AI session with message history
-    const initialPrompts = this.messages
-      .filter(m => m.content) // Only include non-empty messages
-      .map(m => ({
-        role: m.role,
-        content: m.content
-      }));
-    await this.aiClient.resetSession(initialPrompts);
+    await this.aiClient.resetSession();
     this.updateTokensLeft();
   }
 

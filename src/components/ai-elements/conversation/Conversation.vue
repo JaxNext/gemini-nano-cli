@@ -21,7 +21,7 @@ const props = withDefaults(defineProps<Props>(), {
   damping: 0.7,
   stiffness: 0.05,
   mass: 1.25,
-  anchor: 'none',
+  anchor: 'auto',
 })
 const delegatedProps = reactiveOmit(props, 'class')
 </script>
@@ -29,7 +29,7 @@ const delegatedProps = reactiveOmit(props, 'class')
 <template>
   <StickToBottom
     v-bind="delegatedProps"
-    :class="cn('relative flex-1 overflow-y-hidden', props.class)"
+    :class="cn('relative flex-1 min-h-0 h-full w-full [contain:content] [overscroll-behavior-y:none]', props.class)"
     role="log"
   >
     <slot />
